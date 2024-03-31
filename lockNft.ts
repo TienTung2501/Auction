@@ -86,6 +86,10 @@ type Datum = Data.Static<typeof Datum>;
     },
     Datum
   );
+  let winter= { type: "Key", hash: "489794cd7bc74e17e8c3d069c5119b266f9b874511f95e1054a51987" }
+  let winterAddr = lucid.utils.credentialToAddress(winter)
+  console.log(`winter address:${winterAddr}`)
+
 //addr_test1qr6gf6uupffhczz06cdsw58faaxjpc3uyl6fr3e0xpxjrf6slsuqykghz8wm8hgtk4kdsqh0kmc5g7zger0v8lnhpuyq0smpp9
 console.log(`address Bidder: `+ bidderAddress)
 console.log(`Payment Credential: `+payment_credential)

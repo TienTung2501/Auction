@@ -46,6 +46,7 @@ async function readUnLockValidator(): Promise<SpendingValidator> {
 const payment_credential = lucid.utils.getAddressDetails(
     await lucid.wallet.address()
 ).paymentCredential.hash;
+console.log(`payment_credential ${payment_credential}`)
 //f484eb9c0a537c084fd61b0750e9ef4d20e23c27f491c72f304d21a7
 const stake_credential = lucid.utils.getAddressDetails(
     await lucid.wallet.address()
@@ -71,6 +72,7 @@ const DatumBid = Data.Object({
     bidder: typeof Data.String,
     winter: typeof Data.String,
     smc_address: typeof Data.String,
+    auction: typeof Data.String,
     author: typeof Data.String,
     price: typeof Data.BigInt
 });
@@ -88,12 +90,7 @@ let NFTs: NFTBid[]=[]
 const utxos= scriptUtxos.filter((utxo) => {
     try {
         let datum = Data.from<DatumLock>(utxo.datum, DatumLock);
-//            console.log("UTxO Datum:", datum);  // In ra để kiểm tra dữ liệu
-        // console.log("Policy ID:", datum.policyId);
-        // console.log("Asset Name:", datum.assetName);
-        // console.log("Bidder:", datum.bidder);
         const nftWithAssetName = NFTs.find(nft => nft.assetname === datum.assetName);
-
         if (nftWithAssetName) {
             nftWithAssetName.number+=1;
         } 
@@ -147,9 +144,9 @@ const contractUnlockAddress =
     lucid.utils.getAddressDetails(
         await lucid.utils.validatorToAddress(validatorUnlock)
     ).paymentCredential.hash;
- console.log(`contract address: ${contractUnlockAddress}`)
+ console.log(`contract unlock address: ${await lucid.utils.validatorToAddress(validatorUnlock)}`)
  const contractlockAddress = await lucid.utils.validatorToAddress(validatorLock)
- console.log(`contract address: ${contractlockAddress}`)
+ console.log(`contract lock address: ${contractlockAddress}`)
 // update datum
 // console.log(`ContractPHK:${contractPublicKeyHash}`) 6396b55efe136105aaca705704b6e91db6fe218facc8cab00763a5ce
 // console.log(`author: ${authorPublicKeyHash}`) 25d551694edc474b89c930899f4297a1f4c8aeabaf4ef92ba8668afb
@@ -194,6 +191,10 @@ async function unlock(utxos,utxosBids, { from, using }): Promise<TxHash> {
         // Exchange fees need to be paid
  //       let exchange_fee = BigInt(parseInt(UTOut[i].price) * 1 / 100);
         let datum = Data.from<DatumLock>(utxos[i].datum, DatumLock);// không liên quan
+        console.log(`datum${i}: 
+        policyId: ${datum.policyId}
+        assetName: ${datum.assetName}
+        bidder: ${datum.bidder} `)
         if(utxosBids.find(utxosBid => {
             const datum1 = Data.from<DatumLock>(utxosBid.datum, DatumLock);
             return datum.assetName === datum1.assetName;
@@ -206,22 +207,25 @@ async function unlock(utxos,utxosBids, { from, using }): Promise<TxHash> {
                     bidder: datum.bidder,
                     winter: datum.bidder,
                     smc_address: "6396b55efe136105aaca705704b6e91db6fe218facc8cab00763a5ce",
+                    auction: "cee92c06f49e3494378dc7e023b5628c20e4645039aec57093b9935f",
                     author: "25d551694edc474b89c930899f4297a1f4c8aeabaf4ef92ba8668afb",
                     price: 0n,
                 },
                 DatumBid
             );
-            // let datumBid = Data.from<DatumBid>(updateDatumBid, DatumBid);
-            // console.log(`DatumBid policyId: ${datumBid.policyId}`)
-            // console.log(`DatumBid assetName: ${datumBid.assetName}`)
-            // console.log(`DatumBid bidder: ${datumBid.bidder}`)
-            // console.log(`DatumBid winter: ${datumBid.winter}`)
-            // console.log(`DatumBid smc_address: ${datumBid.smc_address}`)
-            // console.log(`DatumBid author: ${datumBid.author}`)
-            // console.log(`DatumBid price: ${datumBid.price}`)
+
+            let datumBid = Data.from<DatumBid>(updateDatumBid, DatumBid);
+            console.log(`Datum bid ${i}: `)
+            console.log(`DatumBid policyId: ${datumBid.policyId}`)
+            console.log(`DatumBid assetName: ${datumBid.assetName}`)
+            console.log(`DatumBid bidder: ${datumBid.bidder}`)
+            console.log(`DatumBid winter: ${datumBid.winter}`)
+            console.log(`DatumBid smc_address: ${datumBid.smc_address}`)
+            console.log(`DatumBid author: ${datumBid.author}`)
+            console.log(`DatumBid price: ${datumBid.price}`)
             tx = await tx
             .payToContract(contractAddr,{inline: updateDatumBid},{ [datum.policyId+datum.assetName] : BigInt(1)})
-            console.log(`Datum hash :${updateDatumBid}`)
+            console.log(`Datum hash ${i} :${updateDatumBid}`)
             
 
         }
@@ -236,7 +240,7 @@ async function unlock(utxos,utxosBids, { from, using }): Promise<TxHash> {
     }
     console.log(1)
     tx = await tx
-        .collectFrom(scriptUtxos, using)
+        .collectFrom(utxos, using)
         .attachSpendingValidator(from)
         .addSigner(await lucid.wallet.address())
         .complete();
@@ -250,12 +254,12 @@ async function unlock(utxos,utxosBids, { from, using }): Promise<TxHash> {
     return signedTx.submit();
 }
 
-// Execute the asset purchase transaction in the contract
+// // Execute the asset purchase transaction in the contract
 const txUnlock = await unlock( utxos, utxosBids, { from: validatorLock, using: redeemer });
 
-// // Waiting time until the transaction is confirmed on the Blockchain
-await lucid.awaitTx(txUnlock);
-console.log(`Success`)
+// // // Waiting time until the transaction is confirmed on the Blockchain
+// await lucid.awaitTx(txUnlock);
+// console.log(`Success`)
 
 
 
